@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ArchOS — AI Code Review System</title>
+<meta name="description" content="Next-generation AI-powered code analysis, review, and optimization platform."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ─── BACKGROUND ─────────────────────────────── -->
+<canvas id="bg-canvas"></canvas>
+<div id="cursor-ring"></div>
+<div id="cursor-dot"></div>
+
+<!-- ─── LOADER ────────────────────────────────── -->
+<div id="loader">
+  <div class="loader-logo">
+    <span class="loader-bracket">[</span>
+    <span class="loader-text">ARCH</span><span class="loader-os">OS</span>
+    <span class="loader-bracket">]</span>
+  </div>
+  <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
+  <div class="loader-status" id="loader-status">Initializing AI Engine...</div>
+</div>
+
+<!-- ─── NAVBAR ────────────────────────────────── -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <div class="nav-logo" onclick="goPage('dashboard')">
+      <div class="logo-mark">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+          <path d="M11 2L20 7V15L11 20L2 15V7L11 2Z" stroke="#6C63FF" stroke-width="1.5" fill="none"/>
+          <path d="M11 6L16 9V13L11 16L6 13V9L11 6Z" fill="#6C63FF" opacity="0.4"/>
+          <circle cx="11" cy="11" r="2" fill="#00FFD1"/>
+        </svg>
+      </div>
+      <div class="logo-text">Arch<span>OS</span></div>
+      <div class="logo-badge">v2.4</div>
+    </div>
+
+    <div class="nav-links" id="nav-links">
+      <a class="nav-link active" data-page="dashboard" onclick="goPage('dashboard')">
+        <span class="nav-link-icon">⬡</span> Dashboard
+      </a>
+      <a class="nav-link" data-page="history" onclick="goPage('history')">
+        <span class="nav-link-icon">◎</span> History
+      </a>
+      <a class="nav-link" data-page="docs" onclick="goPage('docs')">
+        <span class="nav-link-icon">◈</span> Docs
+      </a>
+      <a class="nav-link" data-page="about" onclick="goPage('about')">
+        <span class="nav-link-icon">◉</span> About
+      </a>
+    </div>
+
+    <div class="nav-right">
+      <div class="nav-status">
+        <div class="status-dot"></div>
+        <span>AI Online</span>
+      </div>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── MOBILE MENU ───────────────────────────── -->
+<div class="mobile-menu" id="mobile-menu">
+  <a onclick="goPage('dashboard');closeMobileMenu()">⬡ Dashboard</a>
+  <a onclick="goPage('history');closeMobileMenu()">◎ History</a>
+  <a onclick="goPage('docs');closeMobileMenu()">◈ Documentation</a>
+  <a onclick="goPage('about');closeMobileMenu()">◉ About</a>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     PAGE: DASHBOARD
+     ══════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+
+  <!-- Hero strip -->
+  <div class="page-hero">
+    <div class="hero-content">
+      <div class="hero-eyebrow">
+        <span class="eyebrow-dot"></span>
+        AI-Powered · Real-time Analysis · 99.4% Accuracy
+      </div>
+      <h1 class="hero-title">
+        Code smarter.<br/>
+        <span class="gradient-text">Ship faster.</span>
+      </h1>
+      <p class="hero-sub">Paste your code and let ArchOS identify errors, security issues, and performance bottlenecks in seconds.</p>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat">
+        <div class="hstat-num" data-target="2.4M">0</div>
+        <div class="hstat-lbl">Analyses run</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num" data-target="99.4">0</div>
+        <div class="hstat-lbl">Accuracy %</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-num" data-target="840">0</div>
+        <div class="hstat-lbl">ms avg response</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main workspace -->
+  <div class="workspace">
+
+    <!-- LEFT: Input Panel -->
+    <div class="panel panel-input">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">❮/❯</span>
+          Code Input
+        </div>
+        <div class="panel-controls">
+          <select id="lang-select" class="lang-select">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="cpp">C++</option>
+            <option value="html">HTML</option>
+            <option value="css">CSS</option>
+            <option value="typescript">TypeScript</option>
+            <option value="java">Java</option>
+            <option value="go">Go</option>
+          </select>
+          <button class="btn-ghost btn-sm" onclick="clearCode()" title="Clear">✕ Clear</button>
+          <button class="btn-ghost btn-sm" onclick="loadSample()" title="Load sample">⟳ Sample</button>
+        </div>
+      </div>
+
+      <!-- Code editor area -->
+      <div class="editor-wrap">
+        <div class="line-numbers" id="line-numbers"></div>
+        <textarea
+          id="code-input"
+          class="code-input"
+          spellcheck="false"
+          placeholder="// Paste your code here...&#10;// ArchOS will analyze errors, warnings,&#10;// performance issues, and suggest improvements.&#10;&#10;function example() {&#10;  // Start typing...&#10;}"
+        ></textarea>
+      </div>
+
+      <div class="editor-footer">
+        <span class="editor-info" id="editor-info">0 lines · 0 chars</span>
+        <div class="editor-actions">
+          <button class="btn-analyze" id="analyze-btn" onclick="analyzeCode()">
+            <span class="btn-analyze-icon">◈</span>
+            <span class="btn-analyze-text">Analyze Code</span>
+            <div class="btn-ripple"></div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE: Results Panel -->
+    <div class="panel panel-results" id="panel-results">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">⬡</span>
+          Analysis Results
+        </div>
+        <div class="panel-controls">
+          <span class="result-count" id="result-count">—</span>
+        </div>
+      </div>
+
+      <!-- Initial empty state -->
+      <div class="results-empty" id="results-empty">
+        <div class="empty-graphic">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+            <circle cx="40" cy="40" r="38" stroke="rgba(108,99,255,0.2)" stroke-width="1.5" stroke-dasharray="4 4"/>
+            <circle cx="40" cy="40" r="24" stroke="rgba(0,255,209,0.2)" stroke-width="1.5"/>
+            <path d="M26 40L34 48L54 28" stroke="rgba(108,99,255,0.4)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <p class="empty-title">Ready to analyze</p>
+        <p class="empty-sub">Paste code in the editor and click <em>Analyze Code</em> to begin.</p>
+      </div>
+
+      <!-- Analyzing state -->
+      <div class="analyzing-state" id="analyzing-state" style="display:none">
+        <div class="analyzing-visual">
+          <div class="scan-ring ring1"></div>
+          <div class="scan-ring ring2"></div>
+          <div class="scan-ring ring3"></div>
+          <div class="scan-core">AI</div>
+        </div>
+        <div class="analyzing-progress">
+          <div class="prog-bar-wrap">
+            <div class="prog-bar" id="prog-bar"></div>
+          </div>
+          <div class="analyzing-steps" id="analyzing-steps">Parsing AST...</div>
+        </div>
+      </div>
+
+      <!-- Results list -->
+      <div class="results-list" id="results-list" style="display:none"></div>
+    </div>
+
+    <!-- RIGHT: Sidebar (Score + Assistant) -->
+    <div class="sidebar">
+
+      <!-- Score card -->
+      <div class="score-card glass-card">
+        <div class="score-title">AI Code Score</div>
+        <div class="score-visual">
+          <svg class="score-svg" viewBox="0 0 120 120" width="120" height="120">
+            <circle class="score-track" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="0"/>
+            <circle class="score-fill" id="score-circle" cx="60" cy="60" r="50" stroke-dasharray="314" stroke-dashoffset="314"/>
+          </svg>
+          <div class="score-number">
+            <span id="score-val">—</span>
+            <small>/100</small>
+          </div>
+        </div>
+        <div class="score-label" id="score-label">Awaiting Analysis</div>
+        <div class="score-breakdown" id="score-breakdown" style="display:none">
+          <div class="sb-row">
+            <span>Errors</span><span class="sb-val error" id="sb-errors">0</span>
+          </div>
+          <div class="sb-row">
+            <span>Warnings</span><span class="sb-val warning" id="sb-warnings">0</span>
+          </div>
+          <div class="sb-row">
+            <span>Suggestions</span><span class="sb-val info" id="sb-suggestions">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ArchOS Assistant -->
+      <div class="assistant-card glass-card">
+        <div class="assistant-header">
+          <div class="assistant-avatar">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M10 2L18 6.5V13.5L10 18L2 13.5V6.5L10 2Z" stroke="#6C63FF" stroke-width="1.5" fill="rgba(108,99,255,0.15)"/>
+              <circle cx="10" cy="10" r="2.5" fill="#00FFD1"/>
+            </svg>
+          </div>
+          <div>
+            <div class="assistant-name">ArchOS Assistant</div>
+            <div class="assistant-status">
+              <span class="status-dot"></span> Active
+            </div>
+          </div>
+        </div>
+        <div class="assistant-tips" id="assistant-tips">
+          <!-- Tips injected by JS -->
+        </div>
+      </div>
+
+      <!-- Fixed Code panel (appears after analysis) -->
+      <div class="fixed-code-card glass-card" id="fixed-code-card" style="display:none">
+        <div class="panel-header" style="margin-bottom:0.8rem">
+          <div class="panel-title">
+            <span class="panel-icon" style="color:var(--success)">✓</span>
+            Improved Code
+          </div>
+          <button class="btn-ghost btn-sm" id="copy-fixed-btn" onclick="copyFixed()">
+            ⧉ Copy
+          </button>
+        </div>
+        <pre class="fixed-code-pre" id="fixed-code-pre"><code id="fixed-code-content"></code></pre>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+<!-- END DASHBOARD -->
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: HISTORY
+     ══════════════════════════════════════════════ -->
+<div id="page-history" class="page">
+  <div class="inner-page">
+    <div class="inner-page-header">
+      <div class="iph-eyebrow">◎ Analysis Log</div>
+      <h2 class="iph-title">Review <span class="gradient-text">History</span></h2>
+      <p class="iph-sub">Your recent code analyses, stored locally in your browser.</p>
+    </div>
+    <div class="history-toolbar">
+      <input type="text" id="history-search" class="hist-search" placeholder="Search by language, date..." oninput="filterHistory()"/>
+      <button class="btn-ghost btn-sm" onclick="clearHistory()">✕ Clear All</button>
+    </div>
+    <div id="history-list" class="history-list">
+      <!-- Injected by JS -->
+    </div>
+    <div id="history-empty" class="hist-empty" style="display:none">
+      <div class="empty-graphic">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="30" stroke="rgba(108,99,255,0.2)" stroke-width="1.5"/>
+          <path d="M20 32H44M32 20V44" stroke="rgba(108,99,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <p class="empty-title">No history yet</p>
+      <p class="empty-sub">Run your first analysis from the Dashboard.</p>
+      <button class="btn-primary" onclick="goPage('dashboard')">→ Go to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: DOCS
+     ══════════════════════════════════════════════ -->
+<div id="page-docs" class="page">
+  <div class="inner-page docs-layout">
+    <!-- Sidebar nav -->
+    <div class="docs-nav">
+      <div class="docs-nav-label">Documentation</div>
+      <a class="docs-nav-link active" onclick="showDoc('getting-started')">Getting Started</a>
+      <a class="docs-nav-link" onclick="showDoc('analysis-engine')">Analysis Engine</a>
+      <a class="docs-nav-link" onclick="showDoc('score-system')">Score System</a>
+      <a class="docs-nav-link" onclick="showDoc('languages')">Supported Languages</a>
+      <a class="docs-nav-link" onclick="showDoc('api')">API Reference</a>
+      <a class="docs-nav-link" onclick="showDoc('faq')">FAQ</a>
+    </div>
+    <!-- Doc content -->
+    <div class="docs-content" id="docs-content">
+      <!-- Injected by JS -->
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     PAGE: ABOUT
+     ══════════════════════════════════════════════ -->
+<div id="page-about" class="page">
+  <div class="inner-page">
+    <div class="inner-page-header">
+      <div class="iph-eyebrow">◉ Project</div>
+      <h2 class="iph-title">About <span class="gradient-text">ArchOS</span></h2>
+    </div>
+
+    <div class="about-grid">
+      <div class="about-main glass-card">
+        <h3 class="about-card-title">What is ArchOS?</h3>
+        <p>ArchOS is a next-generation AI Code Review System engineered to help developers write better, safer, and more performant code. It operates as an autonomous code intelligence layer that reviews, scores, and transforms code using a multi-model AI pipeline.</p>
+        <p>Unlike traditional linters that follow rigid rule sets, ArchOS understands context — it recognizes patterns, detects semantic issues, and generates natural language explanations that junior and senior engineers alike can act on immediately.</p>
+        <p>Built for speed. Designed for clarity. Shipped for impact.</p>
+      </div>
+
+      <div class="about-right">
+        <div class="about-feature glass-card">
+          <div class="af-icon" style="background:rgba(108,99,255,0.15);color:#6C63FF">⬡</div>
+          <div>
+            <div class="af-title">Multi-language Support</div>
+            <div class="af-desc">JS, Python, C++, TypeScript, Go, Java, CSS, HTML and growing.</div>
+          </div>
+        </div>
+        <div class="about-feature glass-card">
+          <div class="af-icon" style="background:rgba(0,255,209,0.1);color:#00FFD1">◈</div>
+          <div>
+            <div class="af-title">AST-Level Analysis</div>
+            <div class="af-desc">Deep parsing beyond surface linting — understands code structure and intent.</div>
+          </div>
+        </div>
+        <div class="about-feature glass-card">
+          <div class="af-icon" style="background:rgba(255,77,77,0.12);color:#FF4D4D">⚠</div>
+          <div>
+            <div class="af-title">Security Scanning</div>
+            <div class="af-desc">Detects XSS, injection, unsafe eval, insecure patterns, and CVEs.</div>
+          </div>
+        </div>
+        <div class="about-feature glass-card">
+          <div class="af-icon" style="background:rgba(0,255,159,0.1);color:#00FF9F">◉</div>
+          <div>
+            <div class="af-title">Privacy First</div>
+            <div class="af-desc">No code leaves your browser. History stored in localStorage only.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tech-stack-section">
+      <div class="ts-title">Simulated AI Stack</div>
+      <div class="ts-grid">
+        <div class="ts-item">Pattern Recognition</div>
+        <div class="ts-item">AST Parsing</div>
+        <div class="ts-item">Semantic Analysis</div>
+        <div class="ts-item">Security Heuristics</div>
+        <div class="ts-item">Performance Profiling</div>
+        <div class="ts-item">Auto-fix Generation</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── TOAST ──────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
